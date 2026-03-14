@@ -20,22 +20,21 @@ services:
       start_period: 40s
 
   backend:
-     build: ./backend
-     container_name: mern-backend
-     restart: unless-stopped
-  depends_on:
-    mongodb:
-      condition: service_healthy
-  networks:
-    - mern-network
-  ports:
-    - "5000:5000"
-
-   healthcheck:
-    test: ["CMD", "curl", "-f", "http://localhost:5000"]
-    interval: 30s
-    timeout: 10s
-    retries: 3
+    build: ./backend
+    container_name: mern-backend
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - mern-network
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   frontend:
     build: ./frontend
