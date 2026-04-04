@@ -36,7 +36,7 @@ services:
     read_only: true
 
   frontend:
-     image: ghcr.io/ahad9049/three-tier-app-frontend:latest
+    image: ghcr.io/ahad9049/three-tier-app-frontend:latest
     container_name: mern-frontend
     restart: always
     depends_on:
