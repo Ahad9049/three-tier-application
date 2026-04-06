@@ -2,11 +2,12 @@ pipeline {
     agent any
 
     environment {
-        GHCR_USERNAME = "ahad9049"
-        FRONTEND_IMAGE = "ghcr.io/${GHCR_USERNAME}/three-tier-app-frontend"
-        BACKEND_IMAGE  = "ghcr.io/${GHCR_USERNAME}/three-tier-app-backend"
-        GHCR_CREDENTIALS_ID = "ghcr"
-        BUILD_TAG = "${env.BUILD_NUMBER}"
+        AWS_REGION = "us-east-1"
+        ECR_URI = "116429398424.dkr.ecr.us-east-1.amazonaws.com"
+        AWS_ECR_REPO_FRONTEND = "three-tier-app-frontend"
+        AWS_ECR_REPO_BACKEND = "three-tier-app-backend"
+        GH_CREDENTIALS_ID = "github"
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -17,31 +18,35 @@ pipeline {
             }
         }
 
+        stage('Login to AWS ECR') {
+    steps {
+        withCredentials([[
+            
+            credentialsId: 'aws-creds',   
+            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+        ]]) {
+            sh '''
+            aws cnfigure set aws_access_key_id $AWS_ACCESS_KEY_ID  
+            aws cnfigure set aws_secret_access_key_id $AWS_SECRET_ACCESS_KEY_ID
+            aws cnfigure set default.region ${AWS_REGION}
+
+            aws ecr get-login-password --region $AWS_REGION | \
+            docker login --username AWS --password-stdin ${ECR_URI}
+            '''
+        }
+    }
+}
+
         stage('Build Docker Images') {
             steps {
                 script {
-                    env.FRONTEND_TAG = "${FRONTEND_IMAGE}:${BUILD_TAG}"
-                    env.BACKEND_TAG  = "${BACKEND_IMAGE}:${BUILD_TAG}"
+                    env.FRONTEND_TAG = "${ECR_URI}/${AWS_ECR_REPO_FRONTEND}:${BUILD_TAG}"
+                    env.BACKEND_TAG  = "${ECR_URI}/${AWS_ECR_REPO_BACKEND}:${BUILD_TAG}"
 
                     sh """
-                    docker build -t $FRONTEND_TAG ./frontend
-                    docker build -t $BACKEND_TAG ./backend
-                    """
-                }
-            }
-        }
-
-        stage('Push to GHCR') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: GHCR_CREDENTIALS_ID,
-                    usernameVariable: 'GHCR_USER',
-                    passwordVariable: 'GHCR_TOKEN'
-                )]) {
-                    sh """
-                    echo \$GHCR_TOKEN | docker login ghcr.io -u \$GHCR_USER --password-stdin
-                    docker push $FRONTEND_TAG
-                    docker push $BACKEND_TAG
+                    docker build -t ${env.FRONTEND_TAG} ./frontend
+                    docker build -t ${env.BACKEND_TAG} ./backend
                     """
                 }
             }
@@ -50,8 +55,8 @@ pipeline {
         stage('Cleanup Local Images') {
             steps {
                 sh """
-                docker rmi -f $FRONTEND_TAG || true
-                docker rmi -f $BACKEND_TAG || true
+                docker rmi -f ${env.FRONTEND_TAG} || true
+                docker rmi -f ${env.BACKEND_TAG} || true
                 """
             }
         }
