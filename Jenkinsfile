@@ -64,8 +64,8 @@ pipeline {
         stage('Update docker-compose.yml') {
             steps {
                 sh """
-                yq -i ".services.frontend.image = \\"${FRONTEND_IMAGE}:${BUILD_TAG}\\"" docker-compose.yml
-                yq -i ".services.backend.image = \\"${BACKEND_IMAGE}:${BUILD_TAG}\\"" docker-compose.yml
+                sed -i 's|${ECR_URI}/.*three-tier-app-backend:.*|${env.BACKEND_TAG}|' docker-compose.yml
+                sed -i 's|${ECR_URI}/.*three-tier-app-frontend:.*|${env.FRONTEND_TAG}|' docker-compose.yml
                 """
             }
         }
@@ -83,10 +83,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ Pipeline succeeded!"
+            echo "Pipeline succeeded!"
         }
         failure {
-            echo "❌ Pipeline failed!"
+            echo "Pipeline failed!"
         }
     }
 }
