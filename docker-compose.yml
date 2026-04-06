@@ -17,7 +17,7 @@ services:
       timeout: 10s
       retries: 5
   backend:
-    image: ghcr.io/ahad9049/three-tier-app-backend:latest
+    image: 116429398424.dkr.ecr.us-east-1.amazonaws.com/three-tier-app-backend
     container_name: mern-backend
     restart: always
     depends_on:
@@ -36,7 +36,7 @@ services:
     read_only: true
 
   frontend:
-    image: ghcr.io/ahad9049/three-tier-app-frontend:latest
+    image: 116429398424.dkr.ecr.us-east-1.amazonaws.com/three-tier-app-frontend
     container_name: mern-frontend
     restart: always
     depends_on:
