@@ -19,36 +19,44 @@ pipeline {
         }
 
         stage('Login to AWS ECR') {
-    steps {
-        withCredentials([[
-            
-            credentialsId: 'aws-creds',   
-            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-        ]]) {
-            sh '''
-            aws cnfigure set aws_access_key_id $AWS_ACCESS_KEY_ID  
-            aws cnfigure set aws_secret_access_key_id $AWS_SECRET_ACCESS_KEY_ID
-            aws cnfigure set default.region ${AWS_REGION}
+            steps {
+                withCredentials([[
+                    credentialsId: 'aws-creds',   
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    sh '''
+                    aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+                    aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+                    aws configure set default.region ${AWS_REGION}
 
-            aws ecr get-login-password --region $AWS_REGION | \
-            docker login --username AWS --password-stdin ${ECR_URI}
-            '''
+                    aws ecr get-login-password --region $AWS_REGION | \
+                    docker login --username AWS --password-stdin ${ECR_URI}
+                    '''
+                }
+            }
         }
-    }
-}
 
         stage('Build Docker Images') {
             steps {
                 script {
-                    env.FRONTEND_TAG = "${ECR_URI}/${AWS_ECR_REPO_FRONTEND}:${BUILD_TAG}"
-                    env.BACKEND_TAG  = "${ECR_URI}/${AWS_ECR_REPO_BACKEND}:${BUILD_TAG}"
+                    env.FRONTEND_TAG = "${ECR_URI}/${AWS_ECR_REPO_FRONTEND}:${IMAGE_TAG}"
+                    env.BACKEND_TAG  = "${ECR_URI}/${AWS_ECR_REPO_BACKEND}:${IMAGE_TAG}"
 
                     sh """
                     docker build -t ${env.FRONTEND_TAG} ./frontend
                     docker build -t ${env.BACKEND_TAG} ./backend
                     """
                 }
+            }
+        }
+
+        stage('Push Docker Images') {
+            steps {
+                sh """
+                docker push ${env.FRONTEND_TAG}
+                docker push ${env.BACKEND_TAG}
+                """
             }
         }
 
@@ -83,7 +91,7 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline succeeded!"
+            echo "ipeline succeeded!"
         }
         failure {
             echo "Pipeline failed!"
