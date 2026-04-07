@@ -17,7 +17,7 @@ services:
       timeout: 10s
       retries: 5
   backend:
-    image: 116429398424.dkr.ecr.us-east-1.amazonaws.com/three-tier-app-backend:latest
+    image: ${BACKEND_IMAGE}
     container_name: mern-backend
     restart: always
     depends_on:
@@ -36,7 +36,7 @@ services:
     read_only: true
 
   frontend:
-    image: 116429398424.dkr.ecr.us-east-1.amazonaws.com/three-tier-app-frontend:latest
+    image: ${FRONTEND_IMAGE}
     container_name: mern-frontend
     restart: always
     depends_on:

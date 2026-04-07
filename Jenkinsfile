@@ -2,39 +2,27 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = "us-east-1"
-        ECR_URI = "116429398424.dkr.ecr.us-east-1.amazonaws.com"
-        AWS_ECR_REPO_FRONTEND = "three-tier-app-frontend"
-        AWS_ECR_REPO_BACKEND = "three-tier-app-backend"
-        GITHUB_CREDENTIALS = "github"
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub_creds') // Jenkins stored credentials
+        BRANCH_NAME = "${env.BRANCH_NAME}"
+        IMAGE_TAG = "${BRANCH_NAME}-${BUILD_NUMBER}"
+        DOCKERHUB_USER = "abdulahad9049"
     }
 
     stages {
 
-        stage('Checkout Code') {
+        stage('Checkout Source') {
             steps {
-                git branch: 'main', url: 'https://github.com/Ahad9049/three-tier-application.git'
-                credentialsId: "github"
-                
+                checkout scm
             }
         }
 
-        stage('Login to AWS ECR') {
+        stage('Login to Docker Hub') {
             steps {
-                withCredentials([[
-                    credentialsId: 'aws-creds',   
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                ]]) {
-                    sh '''
-                    aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-                    aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-                    aws configure set default.region ${AWS_REGION}
-
-                    aws ecr get-login-password --region $AWS_REGION | \
-                    docker login --username AWS --password-stdin ${ECR_URI}
-                    '''
+                script {
+                    echo "Logging in to Docker Hub..."
+                    sh """
+                        echo "${DOCKERHUB_CREDENTIALS_PSW}" | docker login -u "${DOCKERHUB_CREDENTIALS_USR}" --password-stdin
+                    """
                 }
             }
         }
@@ -42,8 +30,8 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    env.FRONTEND_TAG = "${ECR_URI}/${AWS_ECR_REPO_FRONTEND}:${IMAGE_TAG}"
-                    env.BACKEND_TAG  = "${ECR_URI}/${AWS_ECR_REPO_BACKEND}:${IMAGE_TAG}"
+                    env.FRONTEND_TAG = "${DOCKERHUB_USER}/three-tier-app-frontend:${IMAGE_TAG}"
+                    env.BACKEND_TAG  = "${DOCKERHUB_USER}/three-tier-app-backend:${IMAGE_TAG}"
 
                     sh """
                     docker build -t ${env.FRONTEND_TAG} ./frontend
@@ -62,6 +50,39 @@ pipeline {
             }
         }
 
+        stage('Prepare .env for Compose') {
+            steps {
+                script {
+                    writeFile file: '.env', text: """
+BACKEND_IMAGE=${env.BACKEND_TAG}
+FRONTEND_IMAGE=${env.FRONTEND_TAG}
+"""
+                }
+            }
+        }
+
+        stage('Approval for Staging/Prod Deploy') {
+            when {
+                anyOf {
+                    branch 'stg'
+                    branch 'prd'
+                }
+            }
+            steps {
+                input message: "Deploy to ${BRANCH_NAME} environment?", ok: "Yes, Deploy"
+            }
+        }
+
+        stage('Run Docker Compose') {
+            steps {
+                sh """
+                docker-compose --env-file .env down
+                docker-compose --env-file .env pull
+                docker-compose --env-file .env up -d --remove-orphans
+                """
+            }
+        }
+
         stage('Cleanup Local Images') {
             steps {
                 sh """
@@ -71,29 +92,11 @@ pipeline {
             }
         }
 
-        stage('Update docker-compose.yml') {
-            steps {
-                sh """
-                sed -i 's|${ECR_URI}/.*three-tier-app-backend:.*|${env.BACKEND_TAG}|' docker-compose.yml
-                sed -i 's|${ECR_URI}/.*three-tier-app-frontend:.*|${env.FRONTEND_TAG}|' docker-compose.yml
-                """
-            }
-        }
-
-        stage('Run Docker Compose') {
-            steps {
-                sh """
-                docker-compose down
-                docker-compose pull
-                docker-compose up -d
-                """
-            }
-        }
     }
 
     post {
         success {
-            echo "ipeline succeeded!"
+            echo "Pipeline succeeded!"
         }
         failure {
             echo "Pipeline failed!"
