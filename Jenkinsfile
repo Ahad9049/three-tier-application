@@ -1,5 +1,5 @@
 pipeline {
-    label {agent 'ec2-dev'}
+    agent { label 'ec2-dev' }
 
     environment {
         DOCKERHUB_CREDENTIALS = 'dockerhub_creds'
@@ -15,9 +15,9 @@ pipeline {
                 checkout scm
             }
         }
+
         stage('Docker Login') {
             steps {
-              
                 withCredentials([usernamePassword(credentialsId: 'dockerhub_creds', 
                                                   usernameVariable: 'DOCKERHUB_USER', 
                                                   passwordVariable: 'DOCKERHUB_PASS')]) {
@@ -80,7 +80,6 @@ FRONTEND_IMAGE=${env.FRONTEND_TAG}
                 """
             }
         }
-
     }
 
     post {
@@ -91,4 +90,4 @@ FRONTEND_IMAGE=${env.FRONTEND_TAG}
             echo "Pipeline failed!"
         }
     }
- }
+}
