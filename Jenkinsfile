@@ -96,4 +96,3 @@ FRONTEND_IMAGE=${env.FRONTEND_TAG}
             echo "Pipeline failed!"
         }
     }
-}
