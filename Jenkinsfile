@@ -1,5 +1,6 @@
 pipeline {
-    agent any
+    agent {label 'ec2-prd'}
+
 
     environment {
         DOCKERHUB_CREDENTIALS = 'dockerhub_creds'
