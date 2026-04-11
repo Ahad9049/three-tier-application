@@ -13,7 +13,7 @@ pipeline {
 
         stage('Checkout Source') {
             steps {
-                checkoutsource()
+                checkoutSource()
             }
         }
 
@@ -39,18 +39,6 @@ pipeline {
         stage('Prepare .env for Compose') {
             steps {
                 prepareEnvFile()
-            }
-        }
-
-        stage('Approval for Staging/Prod Deploy') {
-            when {
-                anyOf {
-                    branch 'stg'
-                    branch 'prd'
-                }
-            }
-            steps {
-                input message: "Deploy to ${BRANCH_NAME} environment?", ok: "Yes, Deploy"
             }
         }
 
