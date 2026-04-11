@@ -5,7 +5,7 @@ pipeline {
     environment {
         
     COMPOSE_FILE = "docker-compose.yml"
-        IMAGE_TAG = "${BRANCH_NAME}-${BUILD_NUMBER}"
+    IMAGE_TAG = "${BRANCH_NAME}-${BUILD_NUMBER}"
        
     }
 
